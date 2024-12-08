@@ -1,0 +1,88 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+defaults:
+  run:
+    shell: bash  # Ustawienie powłoki na bash, nawet w Windows
+
+jobs:
+  # Setup job to install dependencies
+  setup:
+    runs-on: ${{ matrix.os }}  # Użycie macierzy dla różnych systemów operacyjnych
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]  # Testowanie na Ubuntu i Windows
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+          
+      - name: Install Poetry
+        run: |
+          curl -sSL https://install.python-poetry.org | python3 -
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+          
+      - name: Install Dependencies
+        working-directory: ./example-app
+        run: poetry install --no-root
+
+  # Static tests job (linters, formatter, security)
+  static_tests:
+    needs: setup
+    runs-on: ${{ matrix.os }}  # Użycie macierzy dla różnych systemów operacyjnych
+    strategy:
+      matrix:
+        task: [lint, formatter, security]  # Te zadania będą uruchamiane równolegle
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+          
+      - name: Install Poetry
+        run: |
+          curl -sSL https://install.python-poetry.org | python3 -
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+          
+      - name: Install Dependencies
+        working-directory: ./example-app
+        run: poetry install --no-root
+        
+      - name: Run ${{ matrix.task }} task
+        working-directory: ./example-app
+        run: poetry run task ${{ matrix.task }}
+
+  # Unit tests job
+  unit_tests:
+    needs: static_tests
+    runs-on: ${{ matrix.os }}  # Użycie macierzy dla różnych systemów operacyjnych
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+          
+      - name: Install Poetry
+        run: |
+          curl -sSL https://install.python-poetry.org | python3 -
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+          
+      - name: Install Dependencies
+        working-directory: ./example-app
+        run: poetry install --no-root
+        
+      - name: Run Unit Tests
+        working-directory: ./example-app
+        run: poetry run task test
