@@ -1,0 +1,71 @@
+name: Python application
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+permissions:
+  contents: read
+
+jobs:
+  # Job do budowania zależności
+  install_dependencies:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v3
+        with:
+          python-version: "3.10"
+      - name: Install Poetry
+        run: |
+          curl -sSL https://install.python-poetry.org | python3 -
+      - name: Install project dependencies using Poetry
+        run: |
+          poetry install
+
+  # Job do uruchamiania testów statycznych
+  static_tests:
+    runs-on: ubuntu-latest
+    needs: install_dependencies
+    strategy:
+      matrix:
+        task: [lint, formatter, security]  # Równoległe uruchamianie trzech zadań
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v3
+        with:
+          python-version: "3.10"
+      - name: Install Poetry
+        run: |
+          curl -sSL https://install.python-poetry.org | python3 -
+      - name: Install project dependencies using Poetry
+        run: |
+          poetry install
+      - name: Run ${{ matrix.task }} task
+        run: |
+          poetry run task ${{ matrix.task }}
+
+  # Job do uruchamiania testów jednostkowych
+  unit_tests:
+    runs-on: ubuntu-latest
+    needs: install_dependencies
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v3
+        with:
+          python-version: "3.10"
+      - name: Install Poetry
+        run: |
+          curl -sSL https://install.python-poetry.org | python3 -
+      - name: Install project dependencies using Poetry
+        run: |
+          poetry install
+      - name: Run unit tests
+        run: |
+          poetry run task test
