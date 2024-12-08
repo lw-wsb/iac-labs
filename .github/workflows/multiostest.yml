@@ -30,6 +30,51 @@ jobs:
         run: |
           wget -O - https://install.python-poetry.org | python3 -
           echo "$HOME/.local/bin" >> $GITHUB_PATH
+          export PATH="$HOME/.local/bin:$PATH"
+          poetry --version
+
+      - name: Install Dependencies Manager - Windows
+        if: runner.os == 'Windows'
+        run: |
+          $installScript = (Invoke-WebRequest -Uri https://install.python-poetry.org -UseBasicParsing).Content
+          $installScript | python -
+          $env:Path += ";$env:APPDATA\Python\Scripts"
+          echo "$env:APPDATA\Python\Scripts" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+          poetry --version
+          
+      - name: Save Virtual Environment
+        id: cache-venv
+        uses: actions/cache@v3
+        with:
+          path: ./project/.venv
+          key: venv-${{ runner.os }}-${{ hashFiles('**/poetry.lock') }}
+          
+      - name: Setup Project Dependencies
+        working-directory: ./project
+        run: poetry install --no-root
+
+  code_quality:
+    needs: prepare_environment
+    strategy:
+      matrix:
+        platform: [ubuntu-22.04, windows-2022]
+        check_type: ['style', 'static-analysis', 'vulnerabilities']
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - name: Repository Checkout
+        uses: actions/checkout@v3
+      
+      - name: Configure Python Environment
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+          
+      - name: Install Dependencies Manager - Unix
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          wget -O - https://install.python-poetry.org | python3 -
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
 
       - name: Install Dependencies Manager - Windows
         if: runner.os == 'Windows'
@@ -37,6 +82,109 @@ jobs:
           $installScript = (Invoke-WebRequest -Uri https://install.python-poetry.org -UseBasicParsing).Content
           $installScript | python -
           echo "$env:APPDATA\Python\Scripts" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+          
+      - name: Restore Virtual Environment
+        id: cache-venv
+        uses: actions/cache@v3
+        with:
+          path: ./project/.venv
+          key: venv-${{ runner.os }}-${{ hashFiles('**/poetry.lock') }}
+          
+      - name: Install Project Dependencies
+        if: steps.cache-venv.outputs.cache-hit != 'true'
+        working-directory: ./project
+        run: poetry install --no-root
+        
+      - name: Execute ${{ matrix.check_type }}
+        working-directory: ./project
+        run: poetry run validate ${{ matrix.check_type }}
+
+  tests:
+    needs: prepare_environment
+    strategy:
+      matrix:
+        platform: [ubuntu-22.04, windows-2022]
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - name: Repository Checkout
+        uses: actions/checkout@v3
+      
+      - name: Configure Python Environment
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+          
+      - name: Install Dependencies Manager - Unix
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          wget -O - https://install.python-poetry.org | python3 -
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+
+      - name: Install Dependencies Manager - Windows
+        if: runner.os == 'Windows'
+        run: |
+          $installScript = (Invoke-WebRequest -Uri https://install.python-poetry.org -UseBasicParsing).Content
+          $installScript | python -
+          echo "$env:APPDATA\Python\Scripts" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+          
+      - name: Restore Virtual Environment
+        id: cache-venv
+        uses: actions/cache@v3
+        with:
+          path: ./project/.venv
+          key: venv-${{ runner.os }}-${{ hashFiles('**/poetry.lock') }}
+          
+      - name: Install Project Dependencies
+        if: steps.cache-venv.outputs.cache-hit != 'true'
+        working-directory: ./project
+        run: poetry install --no-root
+        
+      - name: Run Test Suite
+        working-directory: ./project
+        run: poetry run validate testsname: Verification Pipeline
+
+on:
+  push:
+    branches: [ production ]
+  pull_request:
+    branches: [ production ]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.ref }}
+
+jobs:
+  prepare_environment:
+    strategy:
+      matrix:
+        platform: [ubuntu-22.04, windows-2022]
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - name: Repository Checkout
+        uses: actions/checkout@v3
+      
+      - name: Configure Python Environment
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+          
+      - name: Install Dependencies Manager - Unix
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          wget -O - https://install.python-poetry.org | python3 -
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+          export PATH="$HOME/.local/bin:$PATH"
+          poetry --version
+
+      - name: Install Dependencies Manager - Windows
+        if: runner.os == 'Windows'
+        run: |
+          $installScript = (Invoke-WebRequest -Uri https://install.python-poetry.org -UseBasicParsing).Content
+          $installScript | python -
+          $env:Path += ";$env:APPDATA\Python\Scripts"
+          echo "$env:APPDATA\Python\Scripts" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+          poetry --version
           
       - name: Save Virtual Environment
         id: cache-venv
