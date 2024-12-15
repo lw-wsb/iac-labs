@@ -23,19 +23,24 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Set up Node.js (if applicable)
-        uses: actions/setup-node@v3
+      - name: Install Python
+        uses: actions/setup-python@v4
         with:
-          node-version: '16'
+          python-version: '3.9'
+
+      - name: Install Poetry
+        run: |
+          curl -sSL https://install.python-poetry.org | python3 -
+          echo "export PATH=\"$HOME/.local/bin:$PATH\"" >> $GITHUB_ENV
 
       - name: Install dependencies
         run: |
-          npm install
+          poetry install --no-root
 
       - name: Build the project
         run: |
-          npm run build
+          poetry build
 
       - name: Run tests
         run: |
-          npm test
+          poetry run pytest
