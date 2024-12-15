@@ -19,20 +19,19 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
       
-      - name: Install Python
+      - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.11'
       
       - name: Install Poetry
         run: |
-          pipx install poetry
-          poetry --version
+          pip install poetry
       
-      - name: Add Poetry to PATH
+      - name: Configure Poetry
         run: |
-          poetry env use python3.11
-          poetry env info
+          poetry config virtualenvs.create true
+          poetry config virtualenvs.in-project true
       
       - name: Install dependencies
         run: |
